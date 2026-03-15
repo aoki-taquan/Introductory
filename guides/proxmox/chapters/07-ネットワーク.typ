@@ -156,14 +156,24 @@ IN ACCEPT -source 192.168.1.0/24 -p tcp -dport 22
 
 == SDN（Software Defined Networking）
 
-Proxmox VE 7 以降では SDN 機能が利用可能です（8.x で正式サポート）。
-VXLAN や EVPN を使用した高度なネットワーク構成が可能です。
+Proxmox VE 8.x では SDN が正式サポートされ、Web UI から
+ソフトウェア定義のネットワークを構築・管理できます。
+クラスタ全体で一貫したネットワーク構成を自動的に展開できるのが利点です。
 
-=== SDN の有効化
+=== 主な概念
 
-Web UI の「Datacenter」→「SDN」から設定できます。
+- *Zone*：ネットワーク分離の単位。種類によって通信方式が異なる
+  - *Simple*：同一ノード内のみ。テスト・開発用途向け
+  - *VLAN*：既存の VLAN を使用。物理スイッチとの連携が必要
+  - *VXLAN*：L3 ネットワーク上にオーバーレイ。マルチノード向け
+  - *EVPN*：BGP ベースの自動ルーティング。大規模環境向け
+- *VNet*：Zone 内に作成する仮想ネットワーク。VM/CT のブリッジとして使用
+- *Subnet*：VNet 内のサブネット定義（IP 範囲、ゲートウェイ、DHCP）
 
-主な概念：
-- *Zone*：ネットワーク分離の単位（Simple、VLAN、VXLAN、EVPN）
-- *VNet*：仮想ネットワーク
-- *Subnet*：VNet 内のサブネット定義
+=== SDN の基本的な設定手順
+
++ Web UI の「Datacenter」→「SDN」→「Zones」で Zone を作成
++ 「VNets」で仮想ネットワークを作成し、Zone に関連付け
++ 「Subnets」で IP 範囲を定義
++ 「SDN」画面で「Apply」をクリックして設定を全ノードに展開
++ VM/CT のネットワーク設定で VNet をブリッジとして指定

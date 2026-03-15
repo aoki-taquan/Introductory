@@ -134,4 +134,6 @@ timedatectl set-timezone Asia/Tokyo
 
 # NTP の確認（chrony が標準）
 systemctl status chronyd
+# chronyd が見つからない場合は systemd-timesyncd を確認
+# systemctl status systemd-timesyncd
 ```

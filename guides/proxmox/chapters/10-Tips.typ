@@ -41,10 +41,12 @@ reboot
 
 ```bash
 # /etc/modules に追加
-echo "vfio
+cat >> /etc/modules << EOF
+vfio
 vfio_iommu_type1
 vfio_pci
-vfio_virqfd" >> /etc/modules
+vfio_virqfd
+EOF
 
 # カーネルモジュールの更新
 update-initramfs -u -k all
@@ -90,32 +92,41 @@ Terraform の Proxmox プロバイダーを使用して、インフラをコー�
 terraform {
   required_providers {
     proxmox = {
-      source  = "Telmate/proxmox"
-      version = ">= 2.9.0"
+      source  = "bpg/proxmox"
+      version = ">= 0.38.0"
     }
   }
 }
 
 provider "proxmox" {
-  pm_api_url          = "https://192.168.1.100:8006/api2/json"
-  pm_api_token_id     = "user@pam!terraform"
-  pm_api_token_secret = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-  pm_tls_insecure     = true
+  endpoint  = "https://192.168.1.100:8006/"
+  api_token = "user@pam!terraform=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+  insecure  = true
 }
 
-resource "proxmox_vm_qemu" "example" {
-  name        = "terraform-vm"
-  target_node = "pve"
-  clone       = "debian-template"
-  cores       = 2
-  memory      = 2048
+resource "proxmox_virtual_environment_vm" "example" {
+  name      = "terraform-vm"
+  node_name = "pve"
 
-  disk {
-    size    = "32G"
-    storage = "local-lvm"
+  clone {
+    vm_id = 9000  # テンプレート VM の ID
   }
 
-  network {
+  cpu {
+    cores = 2
+  }
+
+  memory {
+    dedicated = 2048
+  }
+
+  disk {
+    size         = 32
+    datastore_id = "local-lvm"
+    interface    = "scsi0"
+  }
+
+  network_device {
     model  = "virtio"
     bridge = "vmbr0"
   }
