@@ -102,41 +102,168 @@ ha-manager status
 HA グループでフェイルオーバー先のノードと優先順位を定義します。
 
 ```bash
-# HA グループの作成（Web UI 推奨）
-# Datacenter → HA → Groups → Create
+# HA グループの作成
+ha-manager groupadd prefer-node1 --nodes node1,node2,node3 \
+  --nofailback 0 --restricted 0
+
+# restricted: 1 にすると、グループ内のノードでのみ実行
+# nofailback: 0 にすると、元のノード復旧時に自動で戻る
+```
+
+Web UI では「Datacenter」→「HA」→「Groups」→「Create」から作成できます。
+
+=== HA の状態とリソース管理
+
+```bash
+# HA リソースの状態確認
+ha-manager status
+
+# リソースの状態変更
+ha-manager set vm:<vmid> --state started    # 起動状態を維持
+ha-manager set vm:<vmid> --state stopped    # 停止状態を維持
+ha-manager set vm:<vmid> --state disabled   # HA 管理から一時除外
+ha-manager set vm:<vmid> --state ignored    # HA の監視対象外
+
+# HA リソースの削除
+ha-manager remove vm:<vmid>
 ```
 
 === フェンシング
 
 HA が正しく機能するためには、フェンシング（障害ノードの強制停止）が重要です。
-Proxmox VE はデフォルトで watchdog ベースのフェンシングを使用します。
+フェンシングにより、障害ノード上のリソースが安全に別ノードで起動できることを保証します。
+
+Proxmox VE はデフォルトで Linux ソフトウェア watchdog を使用します。
+ハードウェア watchdog（IPMI など）を使用するとより信頼性が向上します。
+
+```bash
+# watchdog の状態確認
+systemctl status watchdog-mux
+
+# ハードウェア watchdog の設定（/etc/default/pve-ha-manager）
+# WATCHDOG_MODULE=ipmi_watchdog
+```
+
+== クォーラムの仕組み
+
+クラスタが正常に動作するには過半数のノード（クォーラム）が通信可能である必要があります。
+クォーラムを失うと、クラスタファイルシステムが読み取り専用になり、
+VM/CT の起動・停止・マイグレーションが不可能になります。
+
+#table(
+  columns: (auto, auto, auto),
+  inset: 8pt,
+  align: left,
+  table.header(
+    [*ノード数*], [*クォーラム*], [*許容障害数*],
+  ),
+  [2], [2（全台必要）], [0（HA 不可）],
+  [3], [2], [1],
+  [4], [3], [1],
+  [5], [3], [2],
+)
 
 == 2 ノードクラスタ
 
-2 ノード構成ではクォーラムの問題が発生するため、特別な設定が必要です。
+2 ノード構成ではクォーラムの問題が発生するため、特別な対策が必要です。
+
+=== QDevice の導入（推奨）
+
+QDevice は外部の軽量サーバーに第三の投票権を持たせ、
+2 ノードでも安全なクォーラムを実現します。
 
 ```bash
-# 2 ノードクラスタの場合、投票設定を変更
+# QDevice サーバー側の準備（Debian/Ubuntu）
+apt install corosync-qnetd
+
+# Proxmox ノード側から QDevice をセットアップ
+pvecm qdevice setup <QDeviceサーバーIP>
+
+# QDevice の状態確認
+pvecm qdevice status
+```
+
+QDevice サーバーは低スペックで十分です（Raspberry Pi でも可）。
+Proxmox VE 自体をインストールする必要はありません。
+
+=== QDevice なしの場合
+
+QDevice を使わない場合は、手動でクォーラムを調整します。
+
+```bash
+# 1 ノードがダウンした時に残りのノードで強制的にクォーラムを確保
 pvecm expected 1
 ```
 
-ただし、2 ノード構成はスプリットブレインのリスクがあるため、
-可能であれば 3 ノード以上を推奨します。QDevice を追加することで
-2 ノードでも安全なクォーラムを実現できます。
+ただし、スプリットブレイン（両ノードが独立稼働）のリスクがあるため、
+可能な限り QDevice の導入を推奨します。
+
+== クラスタのトラブルシューティング
+
+=== クラスタの健全性確認
 
 ```bash
-# QDevice の設定（外部の軽量サーバーに配置）
-pvecm qdevice setup <QDeviceサーバーIP>
+# クラスタの状態
+pvecm status
+
+# 全ノードの接続状況
+pvecm nodes
+
+# Corosync のリングステータス
+corosync-cfgtool -s
+
+# クラスタファイルシステムの状態
+pmxcfs -l
 ```
+
+=== よくある問題
+
+==== ノードがオフライン表示される
+
+```bash
+# Corosync と pve-cluster の再起動
+systemctl restart corosync
+systemctl restart pve-cluster
+
+# ネットワーク接続の確認
+ping <他ノードのIP>
+
+# Corosync の通信ポート確認（UDP 5405-5412）
+ss -ulnp | grep corosync
+```
+
+==== クォーラム喪失からの復旧
+
+```bash
+# 残存ノードで期待投票数を調整
+pvecm expected 1
+
+# クラスタファイルシステムが復旧するまで待機
+pvecm status
+```
+
+==== スプリットブレインの解消
+
++ 両方のノードの VM を確認し、どちらを正とするか決定
++ 一方のノードを停止
++ 稼働ノードでクォーラムを確保
++ 停止ノードを再起動してクラスタに再参加
 
 == クラスタからのノード削除
 
 ```bash
-# 削除するノードで実行（クリーンな削除）
+# 1. ノード上の VM/CT を他ノードにマイグレーション
+qm migrate <vmid> <移動先ノード> --online
+
+# 2. HA リソースを削除
+ha-manager remove vm:<vmid>
+
+# 3. 残りのノードから削除を実行
 pvecm delnode <ノード名>
 
-# 残りのノードで設定をクリーンアップ
+# 4. 残りのノードで設定をクリーンアップ
 rm -rf /etc/pve/nodes/<ノード名>
 ```
 
-注意：ノード上の VM/CT は事前に他のノードにマイグレーションしてください。
+削除するノード自体はクラスタから切り離された後、
+Proxmox VE を再インストールするか `pvecm updatecerts` でリセットします。

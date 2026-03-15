@@ -15,3 +15,7 @@
 #include "chapters/08-バックアップとリストア.typ"
 #include "chapters/09-クラスタ.typ"
 #include "chapters/10-Tips.typ"
+#include "chapters/11-ユーザー管理と認証.typ"
+#include "chapters/12-監視と通知.typ"
+#include "chapters/13-アップデートとメンテナンス.typ"
+#include "chapters/14-セキュリティ.typ"

@@ -3,19 +3,82 @@
 == Cloud-Init
 
 Cloud-Init を使用すると、VM のデプロイ時にホスト名、ユーザー、SSH 鍵、
-ネットワーク設定を自動的に適用できます。
+ネットワーク設定を自動的に適用できます。テンプレートと組み合わせることで、
+VM のプロビジョニングを完全に自動化できます。
+
+=== 基本設定
 
 ```bash
 # Cloud-Init ドライブの追加
 qm set <vmid> --ide2 local-lvm:cloudinit
 
-# Cloud-Init 設定
+# ユーザーと認証
 qm set <vmid> --ciuser admin
 qm set <vmid> --cipassword <パスワード>
 qm set <vmid> --sshkeys ~/.ssh/id_rsa.pub
+
+# ネットワーク
 qm set <vmid> --ipconfig0 ip=192.168.1.50/24,gw=192.168.1.1
 qm set <vmid> --nameserver 8.8.8.8
 qm set <vmid> --searchdomain example.com
+```
+
+=== カスタム Cloud-Init 設定
+
+標準のオプションで不足する場合、カスタム YAML を指定できます。
+
+```bash
+# カスタム設定ファイルをスニペットストレージに配置
+cat > /var/lib/vz/snippets/my-cloud-init.yml << 'EOF'
+#cloud-config
+packages:
+  - nginx
+  - git
+  - curl
+runcmd:
+  - systemctl enable --now nginx
+write_files:
+  - path: /etc/motd
+    content: "Welcome to Proxmox VM\n"
+EOF
+
+# カスタム設定を VM に適用
+qm set <vmid> --cicustom "vendor=local:snippets/my-cloud-init.yml"
+```
+
+=== Cloud-Init テンプレートのワークフロー
+
++ クラウドイメージをダウンロード（Ubuntu、Debian など公式提供）
++ VM を作成しディスクをインポート
++ Cloud-Init ドライブとデフォルト設定を追加
++ テンプレートに変換
++ クローン時に Cloud-Init パラメータを変更してデプロイ
+
+```bash
+# Ubuntu クラウドイメージの例
+wget https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img
+
+# VM 作成とディスクインポート
+qm create 9000 --name ubuntu-template --memory 2048 --cores 2 \
+  --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-single
+qm importdisk 9000 noble-server-cloudimg-amd64.img local-lvm
+qm set 9000 --scsi0 local-lvm:vm-9000-disk-0
+qm set 9000 --ide2 local-lvm:cloudinit
+qm set 9000 --boot order=scsi0
+qm set 9000 --serial0 socket --vga serial0
+qm set 9000 --agent enabled=1
+
+# デフォルト Cloud-Init 設定
+qm set 9000 --ciuser admin --sshkeys ~/.ssh/id_rsa.pub
+qm set 9000 --ipconfig0 ip=dhcp
+
+# テンプレート化
+qm template 9000
+
+# デプロイ（クローンして個別設定を上書き）
+qm clone 9000 110 --name web-server --full
+qm set 110 --ipconfig0 ip=192.168.1.110/24,gw=192.168.1.1
+qm start 110
 ```
 
 == PCI パススルー
@@ -62,6 +125,13 @@ find /sys/kernel/iommu_groups/ -type l
 # VM にデバイスを追加（Web UI または CLI）
 qm set <vmid> --hostpci0 <デバイスID>
 ```
+
+=== GPU パススルーの注意点
+
+- IOMMU グループ内の全デバイスをまとめてパススルーする必要がある場合がある
+- NVIDIA GPU はデフォルトで仮想環境を検知してドライバーが動作しないことがある。`--hostpci0` に `,x-vga=1` を追加
+- ホスト側で使用中の GPU はパススルーできない。ホストはオンボードグラフィックスまたは別 GPU を使用する
+- ACS（Access Control Services）対応のマザーボードが望ましい
 
 == REST API の活用
 
@@ -133,6 +203,30 @@ resource "proxmox_virtual_environment_vm" "example" {
 }
 ```
 
+== タグとバルク操作
+
+=== タグ
+
+VM/CT にタグを付けて分類・検索を効率化できます。
+
+```bash
+# タグの設定
+qm set <vmid> --tags "production,web"
+pct set <ctid> --tags "development,db"
+```
+
+Web UI のリソースツリーでタグによるフィルタリングが可能です。
+
+=== バルク操作
+
+```bash
+# 特定タグの VM を一括で取得
+pvesh get /cluster/resources --type vm | grep "production"
+
+# 全 VM のバックアップ（スケジュールジョブ推奨）
+vzdump --all --storage backup-storage --compress zstd --mode snapshot
+```
+
 == トラブルシューティング
 
 === よくある問題と対処法
@@ -158,18 +252,9 @@ qm config <vmid>
 
 # ログの確認
 journalctl -u pve-qemu-server -f
-cat /var/log/syslog | grep <vmid>
-```
 
-==== クラスタの同期問題
-
-```bash
-# クラスタファイルシステムの状態
-pmxcfs -l
-
-# Corosync の再起動
-systemctl restart corosync
-systemctl restart pve-cluster
+# タスクログで詳細を確認
+pvesh get /nodes/<ノード名>/tasks --limit 5 --errors 1
 ```
 
 ==== ストレージの問題
@@ -186,6 +271,18 @@ pvs
 pvesm scan <ストレージ種類> <サーバー>
 ```
 
+==== ロックされた VM/CT
+
+操作中に異常終了した場合、VM がロックされることがあります。
+
+```bash
+# ロックの確認
+qm config <vmid> | grep lock
+
+# ロックの解除
+qm unlock <vmid>
+```
+
 == 便利なコマンド集
 
 ```bash
@@ -199,9 +296,12 @@ pvesh get /cluster/resources --type vm
 pvesh get /nodes/<ノード名>/tasks
 
 # 設定ファイルのバックアップ
-tar czf /root/pve-config-backup.tar.gz /etc/pve/
+tar czf /root/pve-config-$(date +%Y%m%d).tar.gz /etc/pve/
 
-# SSL 証明書の更新（Let's Encrypt）
-pvenode acme account register default <メール>
-pvenode acme cert order
+# VM/CT の一覧（全ノード）
+pvesh get /cluster/resources --type vm --output-format table
+
+# 特定ノードの VM 一覧
+qm list
+pct list
 ```
