@@ -1051,3 +1051,29 @@ az aks get-credentials --resource-group myRG --name my-cluster
   [クラウドで手軽に本番運用], [EKS / GKE / AKS（マネージドで運用負荷が低い）],
   [クラウド非依存の本番環境], [Talos + Cilium または RKE2],
 )
+
+== 次のステップ
+
+本ガイドではKubernetesの基礎からエコシステムの主要ツール、ディストリビューションの選択まで幅広く学びました。さらに学習を進めるために、以下のトピックを探索してみてください。
+
+- *RBAC*: ロールベースアクセス制御による権限管理
+- *NetworkPolicy*: Pod間のネットワークトラフィック制御
+- *HPA（Horizontal Pod Autoscaler）*: メトリクスに基づく自動水平スケーリング
+- *VPA（Vertical Pod Autoscaler）*: Podのリソースリクエストの自動調整
+- *Operator*: カスタムコントローラーによるアプリケーション運用の自動化
+- *サービスメッシュ*: Istio、Linkerdによるサービス間通信の管理・可視化
+- *ポリシーエンジン*: OPA/Gatekeeper、Kyvernoによるクラスタポリシーの強制
+- *Terraform / Pulumi*: クラスタ自体のInfrastructure as Code
+- *FinOps*: Kubecost等によるKubernetesのコスト最適化
+
+=== 参考リソース
+
+- Kubernetes公式ドキュメント: https://kubernetes.io/ja/docs/
+- Kubernetes公式チュートリアル: https://kubernetes.io/ja/docs/tutorials/
+- kubectl チートシート: https://kubernetes.io/ja/docs/reference/kubectl/cheatsheet/
+- Helm公式ドキュメント: https://helm.sh/ja/docs/
+- Argo CD公式ドキュメント: https://argo-cd.readthedocs.io/
+- Prometheus公式ドキュメント: https://prometheus.io/docs/
+- Grafana公式ドキュメント: https://grafana.com/docs/
+- Talos Linux公式ドキュメント: https://www.talos.dev/
+- CNCF Landscape: https://landscape.cncf.io/
