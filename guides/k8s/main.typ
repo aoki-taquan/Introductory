@@ -20,3 +20,4 @@
 #include "chapters/13-ArgoCDとGitOps.typ"
 #include "chapters/14-モニタリング.typ"
 #include "chapters/15-実践運用.typ"
+#include "chapters/16-ディストリビューション.typ"
