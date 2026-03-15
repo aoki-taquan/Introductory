@@ -199,20 +199,23 @@ kubectl get pods --show-labels
 
 == 次のステップ
 
-本ガイドではKubernetesの基礎を学びました。さらに学習を進めるために、以下のトピックを探索してみてください。
+本ガイドではKubernetesの基礎からエコシステムの主要ツールまでを学びました。さらに学習を進めるために、以下のトピックを探索してみてください。
 
-- *Ingress*: HTTPルーティングとTLS終端
-- *Helm*: Kubernetesパッケージマネージャ
-- *Kustomize*: マニフェストのカスタマイズツール
 - *RBAC*: ロールベースアクセス制御
 - *NetworkPolicy*: Pod間のネットワーク制御
 - *HPA（Horizontal Pod Autoscaler）*: 自動水平スケーリング
 - *StatefulSet*: ステートフルアプリケーションの管理
 - *Operator*: カスタムコントローラーの開発
-- *GitOps*: ArgoCD、Fluxを使った継続的デリバリー
+- *サービスメッシュ*: Istio、Linkerdによるサービス間通信の管理
+- *ポリシーエンジン*: OPA/Gatekeeper、Kyvernoによるポリシー管理
+- *Terraform*: クラスタ自体のInfrastructure as Code
 
 === 参考リソース
 
 - Kubernetes公式ドキュメント: https://kubernetes.io/ja/docs/
 - Kubernetes公式チュートリアル: https://kubernetes.io/ja/docs/tutorials/
 - kubectl チートシート: https://kubernetes.io/ja/docs/reference/kubectl/cheatsheet/
+- Helm公式ドキュメント: https://helm.sh/ja/docs/
+- Argo CD公式ドキュメント: https://argo-cd.readthedocs.io/
+- Prometheus公式ドキュメント: https://prometheus.io/docs/
+- Grafana公式ドキュメント: https://grafana.com/docs/
