@@ -1,0 +1,15 @@
+# Typst auxiliary files
+*.typst-cache/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Do NOT ignore PDFs - they are intentionally committed
