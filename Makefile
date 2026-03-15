@@ -3,19 +3,23 @@
 TYPST := typst
 TYPST_FLAGS := --root .
 
-# _template を除く全ガイドの main.typ を自動検出
-SOURCES := $(filter-out guides/_template/main.typ, $(wildcard guides/*/main.typ))
-PDFS := $(SOURCES:.typ=.pdf)
+# _template を除く全ガイドのディレクトリを自動検出
+GUIDE_DIRS := $(filter-out guides/_template, $(patsubst %/main.typ,%,$(wildcard guides/*/main.typ)))
+# PDF名はディレクトリ名に合わせる（例: guides/claude-code/claude-code.pdf）
+PDFS := $(foreach d,$(GUIDE_DIRS),$(d)/$(notdir $(d)).pdf)
 
 .PHONY: all clean list setup help
 
 ## すべてのガイドをビルド
 all: $(PDFS)
 
-## 個別ガイドのビルドルール
-guides/%/main.pdf: guides/%/main.typ $(wildcard guides/%/chapters/*.typ) templates/book.typ
-	$(TYPST) compile $(TYPST_FLAGS) $< $@
-	@echo "Built $@"
+## 個別ガイドのビルドルールを動的に生成
+define GUIDE_RULE
+$(1)/$(notdir $(1)).pdf: $(1)/main.typ $(wildcard $(1)/chapters/*.typ) templates/book.typ
+	$$(TYPST) compile $$(TYPST_FLAGS) $$< $$@
+	@echo "Built $$@"
+endef
+$(foreach d,$(GUIDE_DIRS),$(eval $(call GUIDE_RULE,$(d))))
 
 ## Typst + 日本語フォントのセットアップ
 setup:
@@ -58,25 +62,25 @@ clean:
 ## ガイド一覧を表示
 list:
 	@echo "=== ガイド一覧 ==="
-	@for src in $(SOURCES); do \
-		dir=$$(dirname $$src); \
-		name=$$(basename $$dir); \
-		if [ -f "$${src%.typ}.pdf" ]; then \
-			echo "  [PDF] $$name"; \
+	@for d in $(GUIDE_DIRS); do \
+		name=$$(basename $$d); \
+		pdf="$$d/$$name.pdf"; \
+		if [ -f "$$pdf" ]; then \
+			echo "  [PDF] $$name  ($$pdf)"; \
 		else \
 			echo "  [---] $$name"; \
 		fi; \
 	done
-	@if [ -z "$(SOURCES)" ]; then \
+	@if [ -z "$(GUIDE_DIRS)" ]; then \
 		echo "  (ガイドなし。guides/ 以下にディレクトリを追加してください)"; \
 	fi
 
 ## ヘルプ
 help:
 	@echo "使い方:"
-	@echo "  make setup                  Typst + 日本語フォントをインストール"
-	@echo "  make all                    すべてのガイドをビルド"
-	@echo "  make guides/<名前>/main.pdf 特定ガイドをビルド"
-	@echo "  make clean                  PDFを削除"
-	@echo "  make list                   ガイド一覧を表示"
-	@echo "  make help                   このヘルプを表示"
+	@echo "  make setup                          Typst + 日本語フォントをインストール"
+	@echo "  make all                            すべてのガイドをビルド"
+	@echo "  make guides/<名前>/<名前>.pdf       特定ガイドをビルド"
+	@echo "  make clean                          PDFを削除"
+	@echo "  make list                           ガイド一覧を表示"
+	@echo "  make help                           このヘルプを表示"
