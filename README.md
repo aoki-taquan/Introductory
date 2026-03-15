@@ -12,16 +12,16 @@ source ~/.bashrc  # PATHを反映
 ## ビルド
 
 ```bash
-make all                              # 全ガイドをPDFにコンパイル
-make guides/<名前>/<名前>.pdf         # 個別ガイドをビルド
-make list                             # ガイド一覧
+make all                # 全ガイドをPDFにコンパイル
+make <名前>入門.pdf     # 個別ガイドをビルド（例: make claude-code入門.pdf）
+make list               # ガイド一覧
 ```
 
 ## ガイド一覧
 
-| ガイド | 説明 |
-|--------|------|
-| [claude-code](guides/claude-code/claude-code.pdf) | Claude Code 入門 |
+| ガイド | PDF |
+|--------|-----|
+| Claude Code | [claude-code入門.pdf](claude-code入門.pdf) |
 
 ## 新しいガイドの追加
 
@@ -34,9 +34,10 @@ make list                             # ガイド一覧
 ```
 guides/<名前>/
 ├── main.typ          # エントリポイント
-├── <名前>.pdf        # コンパイル済みPDF
 ├── chapters/         # 章ファイル
 │   ├── 01-はじめに.typ
 │   └── 02-基本.typ
 └── figures/          # 図・画像（必要に応じて）
+
+<名前>入門.pdf        # ルート直下に出力される
 ```

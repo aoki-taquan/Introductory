@@ -5,8 +5,8 @@ TYPST_FLAGS := --root .
 
 # _template を除く全ガイドのディレクトリを自動検出
 GUIDE_DIRS := $(filter-out guides/_template, $(patsubst %/main.typ,%,$(wildcard guides/*/main.typ)))
-# PDF名はディレクトリ名に合わせる（例: guides/claude-code/claude-code.pdf）
-PDFS := $(foreach d,$(GUIDE_DIRS),$(d)/$(notdir $(d)).pdf)
+# PDFはルート直下に出力（例: claude-code入門.pdf）
+PDFS := $(foreach d,$(GUIDE_DIRS),$(notdir $(d))入門.pdf)
 
 .PHONY: all clean list setup help
 
@@ -15,7 +15,7 @@ all: $(PDFS)
 
 ## 個別ガイドのビルドルールを動的に生成
 define GUIDE_RULE
-$(1)/$(notdir $(1)).pdf: $(1)/main.typ $(wildcard $(1)/chapters/*.typ) templates/book.typ
+$(notdir $(1))入門.pdf: $(1)/main.typ $(wildcard $(1)/chapters/*.typ) templates/book.typ
 	$$(TYPST) compile $$(TYPST_FLAGS) $$< $$@
 	@echo "Built $$@"
 endef
@@ -64,7 +64,7 @@ list:
 	@echo "=== ガイド一覧 ==="
 	@for d in $(GUIDE_DIRS); do \
 		name=$$(basename $$d); \
-		pdf="$$d/$$name.pdf"; \
+		pdf="$${name}入門.pdf"; \
 		if [ -f "$$pdf" ]; then \
 			echo "  [PDF] $$name  ($$pdf)"; \
 		else \
@@ -78,9 +78,9 @@ list:
 ## ヘルプ
 help:
 	@echo "使い方:"
-	@echo "  make setup                          Typst + 日本語フォントをインストール"
-	@echo "  make all                            すべてのガイドをビルド"
-	@echo "  make guides/<名前>/<名前>.pdf       特定ガイドをビルド"
-	@echo "  make clean                          PDFを削除"
-	@echo "  make list                           ガイド一覧を表示"
-	@echo "  make help                           このヘルプを表示"
+	@echo "  make setup              Typst + 日本語フォントをインストール"
+	@echo "  make all                すべてのガイドをビルド"
+	@echo "  make <名前>入門.pdf     特定ガイドをビルド"
+	@echo "  make clean              PDFを削除"
+	@echo "  make list               ガイド一覧を表示"
+	@echo "  make help               このヘルプを表示"
