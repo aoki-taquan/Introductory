@@ -197,22 +197,3 @@ kubectl get pods --show-labels
   [`kubectl debug <Pod名> -it --image=busybox`], [デバッグ用コンテナを起動],
 )
 
-== 次のステップ
-
-本ガイドではKubernetesの基礎を学びました。さらに学習を進めるために、以下のトピックを探索してみてください。
-
-- *Ingress*: HTTPルーティングとTLS終端
-- *Helm*: Kubernetesパッケージマネージャ
-- *Kustomize*: マニフェストのカスタマイズツール
-- *RBAC*: ロールベースアクセス制御
-- *NetworkPolicy*: Pod間のネットワーク制御
-- *HPA（Horizontal Pod Autoscaler）*: 自動水平スケーリング
-- *StatefulSet*: ステートフルアプリケーションの管理
-- *Operator*: カスタムコントローラーの開発
-- *GitOps*: ArgoCD、Fluxを使った継続的デリバリー
-
-=== 参考リソース
-
-- Kubernetes公式ドキュメント: https://kubernetes.io/ja/docs/
-- Kubernetes公式チュートリアル: https://kubernetes.io/ja/docs/tutorials/
-- kubectl チートシート: https://kubernetes.io/ja/docs/reference/kubectl/cheatsheet/
