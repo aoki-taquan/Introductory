@@ -11,9 +11,9 @@ vibe-local は Ollama 経由でローカルモデルを利用します。
   columns: (auto, auto, auto, 1fr),
   align: (left, left, left, left),
   table.header([*モデル名*], [*必要 RAM*], [*用途*], [*特徴*]),
-  [`qwen3-coder:30b`], [96GB], [高精度コード生成], [最高品質、大規模プロジェクト向け],
-  [`qwen3:8b`], [16GB], [標準開発作業], [バランス重視、推奨],
-  [`qwen3:1.7b`], [8GB], [軽量タスク], [低スペック環境向け],
+  [`qwen3-coder:30b`], [16GB+], [高精度コード生成], [最高品質、大規模プロジェクト向け],
+  [`qwen3:8b`], [8GB+], [標準開発作業], [バランス重視、推奨],
+  [`qwen3:1.7b`], [4GB+], [軽量タスク], [低スペック環境向け],
 )
 
 === サイドカーモデル
@@ -66,9 +66,9 @@ sidecar_model=qwen3:1.7b
   columns: (auto, 1fr),
   align: (left, left),
   table.header([*環境変数*], [*説明*]),
-  [`VIBE_LOCAL_DEBUG=1`], [デバッグモードを有効化（詳細ログを出力）],
-  [`VIBE_DEBUG_TUI=1`], [TUI（ターミナル UI）のデバッグ情報を表示],
-  [`VIBE_NO_SCROLL=1`], [スクロール領域機能を無効化（ターミナル互換性問題の解決）],
+  [`VIBE_LOCAL_DEBUG`], [デバッグモードを有効化（`=1` を設定）],
+  [`VIBE_DEBUG_TUI`], [TUI（ターミナル UI）のデバッグ情報を表示（`=1` を設定）],
+  [`VIBE_NO_SCROLL`], [スクロール領域機能を無効化（`=1` を設定）],
 )
 
 使い方の例：

@@ -10,21 +10,14 @@ vibe-local を利用するには以下が必要です：
   table.header([*項目*], [*要件*]),
   [OS], [macOS（Apple Silicon M1+）、Windows 10/11、Linux],
   [Python], [Python 3.8 以降],
-  [RAM], [8GB 以上（モデルによる）],
+  [RAM], [4GB 以上（使用モデルにより異なる）],
   [GPU], [NVIDIA GPU 推奨（Windows/Linux）],
   [Ollama], [別途インストール必要],
 )
 
 === モデル別メモリ要件
 
-#table(
-  columns: (auto, auto, 1fr),
-  align: (left, left, left),
-  table.header([*モデル*], [*必要 RAM*], [*用途*]),
-  [`qwen3:1.7b`], [8GB], [軽量タスク、動作確認],
-  [`qwen3:8b`], [16GB], [標準的な開発作業],
-  [`qwen3-coder:30b`], [96GB], [高精度なコード生成],
-)
+詳細は「モデルと設定」章を参照してください。目安として、最低 4GB の RAM があれば軽量モデルで動作します。
 
 == インストール手順
 
@@ -63,7 +56,9 @@ vibe-local
 
 == Ollama の手動インストール
 
-インストールスクリプトが Ollama を自動インストールしない場合は、手動でインストールします。
+インストールスクリプトは通常 Ollama を自動インストールします。
+ネットワーク制限や権限の問題でスクリプトが失敗した場合、
+または Ollama を手動で管理したい場合は以下の手順に従います。
 
 === macOS / Linux
 
