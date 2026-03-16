@@ -123,7 +123,7 @@ Customization > Export Templates から Jinja2 テンプレートを作成しま
 ```jinja2
 [all]
 {% for device in queryset %}
-{{ device.name }} ansible_host={{ device.primary_ip.address.ip }}
+{{ device.name }} ansible_host={{ device.primary_ip4.address | ansible.utils.ipaddr('address') }}
 {% endfor %}
 
 [{{ group_by }}]

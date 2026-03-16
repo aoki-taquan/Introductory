@@ -149,7 +149,7 @@ docker compose up -d
 `env/netbox.env` または `configuration/configuration.py` で主要な設定を変更できます。
 
 ```python
-# ログイン不要でのAPIアクセスを制限
+# 未認証アクセスを禁止（ログインを必須化）
 LOGIN_REQUIRED = True
 
 # セッションのタイムアウト（秒）

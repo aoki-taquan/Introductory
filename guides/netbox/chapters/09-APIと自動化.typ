@@ -108,7 +108,8 @@ response = requests.get(
 devices = response.json()["results"]
 
 for device in devices:
-    print(f"{device['name']}: {device['primary_ip']['address'] if device['primary_ip'] else 'N/A'}")
+    ip = device['primary_ip4']['address'] if device['primary_ip4'] else 'N/A'
+    print(f"{device['name']}: {ip}")
 ```
 
 === pynetbox ライブラリ（推奨）
@@ -130,7 +131,8 @@ nb = pynetbox.api(
 # デバイス一覧
 devices = nb.dcim.devices.filter(site="tokyo-dc", status="active")
 for device in devices:
-    print(device.name, device.primary_ip)
+    ip = device.primary_ip4.address if device.primary_ip4 else 'N/A'
+    print(device.name, ip)
 
 # デバイスの作成
 device_type = nb.dcim.device_types.get(slug="catalyst-9300-48p")
