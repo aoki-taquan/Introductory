@@ -54,6 +54,9 @@
     v(0.3em)
   }
 
+  // コードブロック・インラインコードのフォント設定（日本語対応）
+  show raw: set text(font: ("Noto Sans Mono CJK JP", "DejaVu Sans Mono"))
+
   // コードブロック設定
   show raw.where(block: true): it => {
     block(
