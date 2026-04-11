@@ -8,7 +8,7 @@ GUIDE_DIRS := $(filter-out guides/_template, $(patsubst %/main.typ,%,$(wildcard 
 # PDFはルート直下に出力（例: claude-code入門.pdf）
 PDFS := $(foreach d,$(GUIDE_DIRS),$(notdir $(d))入門.pdf)
 
-.PHONY: all clean list setup help
+.PHONY: all clean list setup help nix-shell
 
 ## すべてのガイドをビルド
 all: $(PDFS)
@@ -21,7 +21,11 @@ $(notdir $(1))入門.pdf: $(1)/main.typ $(wildcard $(1)/chapters/*.typ) template
 endef
 $(foreach d,$(GUIDE_DIRS),$(eval $(call GUIDE_RULE,$(d))))
 
-## Typst + 日本語フォントのセットアップ
+## Nix開発環境に入る
+nix-shell:
+	nix develop
+
+## Typst + 日本語フォントのセットアップ（Nix未使用時のフォールバック）
 setup:
 	@if command -v $(TYPST) >/dev/null 2>&1; then \
 		echo "typst is already installed: $$($(TYPST) --version)"; \
@@ -78,7 +82,8 @@ list:
 ## ヘルプ
 help:
 	@echo "使い方:"
-	@echo "  make setup              Typst + 日本語フォントをインストール"
+	@echo "  make nix-shell          Nix開発環境に入る（推奨）"
+	@echo "  make setup              Typst + 日本語フォントをインストール（Nix未使用時）"
 	@echo "  make all                すべてのガイドをビルド"
 	@echo "  make <名前>入門.pdf     特定ガイドをビルド"
 	@echo "  make clean              PDFを削除"

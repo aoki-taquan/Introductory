@@ -12,4 +12,8 @@ Thumbs.db
 .vscode/
 .idea/
 
+# Nix
+result
+.direnv/
+
 # Do NOT ignore PDFs - they are intentionally committed
