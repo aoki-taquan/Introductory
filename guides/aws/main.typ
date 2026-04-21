@@ -47,3 +47,7 @@
 #include "chapters/40-CICDとDevOps.typ"
 #include "chapters/41-マルチテナントSaaS設計.typ"
 #include "chapters/42-AWSチートシート.typ"
+#include "chapters/43-性能チューニング完全ガイド.typ"
+#include "chapters/44-トラブルシューティングCookbook.typ"
+#include "chapters/45-ハイブリッドクラウド.typ"
+#include "chapters/46-AWSと関連OSSエコシステム.typ"
