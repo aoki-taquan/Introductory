@@ -1,6 +1,6 @@
 = CI/CD と DevOps
 
-11章で IaC、38〜39章で CloudFormation/CDK/Terraform を扱った。本章では *継続的インテグレーション・継続的デリバリ* の AWS 上での実装を、純正 CodeCatalyst / CodePipeline と GitHub Actions の比較を含めて深掘りする。
+11章で IaC、38〜39章で CloudFormation/CDK/Terraform を扱った。本章では *継続的インテグレーション・継続的デリバリ* の AWS 上での実装を、純正 Code シリーズと GitHub Actions の比較を含めて深掘りする。
 
 == CI/CD の全体像
 
@@ -26,11 +26,11 @@
   [CodePipeline], [パイプラインオーケストレーション],
   [CodeArtifact], [npm / pip / maven などのアーティファクトリ],
   [CodeGuru], [コードレビュー・プロファイラ（Q Developer に統合進行）],
-  [CodeCatalyst], [統合 DevOps プラットフォーム（CodeCommit 後継的位置）],
+  [CodeCatalyst], [⚠️ 2025/10 廃止発表。2025/11 新規スペース不可、2025/12 保守終了。新規採用は避ける],
   [Amazon Q Developer], [生成 AI コーディング支援],
 )
 
-実務では *GitHub + GitHub Actions* が圧倒的シェア。AWS 純正は *Code* シリーズと *CodeCatalyst*。
+実務では *GitHub + GitHub Actions* が圧倒的シェア。AWS 純正は *Code* シリーズが中心（CodeCatalyst は 2025 年末に廃止）。
 
 == GitHub Actions ＋ AWS（推奨）
 
@@ -274,17 +274,23 @@ Resources:
 
 CloudWatch アラームと連動して、エラー率が高ければ自動ロールバック。
 
-== Amazon CodeCatalyst
+== Amazon CodeCatalyst（⚠️ 廃止）
 
-統合 DevOps プラットフォーム（GitHub Codespaces / GitLab 的）。
+統合 DevOps プラットフォームとして提供されていたが、*2025年10月に AWS は廃止を発表*。2025年11月以降新規スペース作成不可、2025年12月で保守終了予定。
 
-- *Project*：Source repo + Build / CD + Issue 管理
-- *Workflows*：ビルド・デプロイ定義（YAML）
-- *Dev Environment*：クラウド開発環境（Cloud9 後継）
-- *Blueprint*：プロジェクト雛形
-- *Identity*：AWS Builder ID で個人アカウント
+既存利用者は *GitHub や GitLab など外部 Git ホスティング* + *CodePipeline / CodeBuild / CodeDeploy* への移行が推奨されている。新規プロジェクトは採用を避けること。
 
-CodeCommit が新規受付停止の方向で、CodeCatalyst が後継的位置。ただし GitHub の地位は変わらず、補完的な選択肢。
+=== 歴史的参考（すでに非推奨）
+
+- Project・Workflows・Dev Environment・Blueprint などの概念
+- AWS Builder ID による個人アカウント
+- CodeCommit の新規受付停止と合わせて AWS の純正 DevOps 統合戦略の再編が進行中
+
+=== 代替の選択肢
+
+- *GitHub + GitHub Actions + CodePipeline*：現状の王道
+- *GitLab（セルフホスト or SaaS）+ CodePipeline*
+- *HCP Terraform + GitHub*：IaC 重視
 
 == Amazon Q Developer
 

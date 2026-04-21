@@ -184,7 +184,7 @@ SageMaker Savings Plans（最大 64%）
 
 === Reserved Instance
 
-- RDS / ElastiCache / OpenSearch / Redshift / Elasticsearch で利用
+- RDS / ElastiCache / OpenSearch / Redshift で利用
 - EC2 は Savings Plans 推奨
 
 === Spot

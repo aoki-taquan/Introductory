@@ -132,7 +132,7 @@ arn:aws:sns:ap-northeast-1:123456789012:my-topic
 arn:aws:sqs:ap-northeast-1:123456789012:my-queue
 arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:my-secret-AbCdEf
 arn:aws:kms:ap-northeast-1:123456789012:key/12345678-1234-1234-1234-123456789012
-arn:aws:bedrock:ap-northeast-1::foundation-model/anthropic.claude-sonnet-4-6-20251201-v1:0
+arn:aws:bedrock:ap-northeast-1:123456789012:inference-profile/apac.anthropic.claude-sonnet-4-6-v1:0
 ```
 
 == 必須リソースの上限値（クォータ）
@@ -143,17 +143,18 @@ arn:aws:bedrock:ap-northeast-1::foundation-model/anthropic.claude-sonnet-4-6-202
   table.header([*項目*], [*デフォルト上限*]),
   [VPC 数 / リージョン], [5],
   [サブネット数 / VPC], [200],
-  [SG 数 / VPC], [2,500],
+  [SG 数 / リージョン], [2,500],
   [SG ルール / SG], [60 / 60（in/out）],
-  [ENI / SG], [5（per ENI）],
+  [SG / ENI], [5（per ENI）],
   [Elastic IP / リージョン], [5],
   [EC2 vCPU / オンデマンド (Standard)], [リージョンごとに異なる、申請必要],
-  [Lambda 同時実行], [1,000],
+  [Lambda 同時実行], [1,000（アカウント・リージョン、緩和可）],
   [Lambda ENV変数 合計], [4 KB],
-  [Lambda 実行時間], [15 分],
+  [Lambda 実行時間], [15 分（900 秒）],
+  [Lambda メモリ], [128 MB 〜 10,240 MB（10 GB）],
   [DynamoDB テーブル / リージョン], [2,500],
   [API Gateway API / リージョン], [600],
-  [S3 バケット / アカウント], [100（緩和申請可、最大 1,000）],
+  [S3 バケット / アカウント], [10,000（デフォルト、2024/11〜。申請で最大 100 万）],
   [CloudFormation スタック / リージョン], [2,000],
   [スタック内リソース], [500],
   [ALB / リージョン], [50],

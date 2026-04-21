@@ -79,25 +79,37 @@ arn:aws:<service>:<region>:<account-id>:<resource>
 
 === 条件（Condition）
 
-アクセス元 IP、時刻、MFA の有無などで制御を追加できる。典型的なのは「*MFA なし／社外 IP からの操作を一律拒否する*」ための `Deny` ポリシーである。
+アクセス元 IP、時刻、MFA の有無などで制御を追加できる。典型的なのは「*MFA なし、または 社外 IP のいずれか* に該当したら拒否する」ポリシー。
+
+*注意*：1つの `Statement` 内に書いた複数の `Condition` 演算子は *AND 結合* される。したがって「MFA なし *または* 社外 IP を拒否」を表現するには、*Statement を2つに分ける* 必要がある。
 
 ```json
 {
   "Version": "2012-10-17",
-  "Statement": [{
-    "Sid": "DenyWithoutMfaOrOutsideCorpIp",
-    "Effect": "Deny",
-    "Action": "*",
-    "Resource": "*",
-    "Condition": {
-      "BoolIfExists": { "aws:MultiFactorAuthPresent": "false" },
-      "NotIpAddress":  { "aws:SourceIp": ["203.0.113.0/24"] }
+  "Statement": [
+    {
+      "Sid": "DenyWithoutMfa",
+      "Effect": "Deny",
+      "Action": "*",
+      "Resource": "*",
+      "Condition": {
+        "BoolIfExists": { "aws:MultiFactorAuthPresent": "false" }
+      }
+    },
+    {
+      "Sid": "DenyOutsideCorpIp",
+      "Effect": "Deny",
+      "Action": "*",
+      "Resource": "*",
+      "Condition": {
+        "NotIpAddress": { "aws:SourceIp": ["203.0.113.0/24"] }
+      }
     }
-  }]
+  ]
 }
 ```
 
-*`Allow` 側の Condition ではなく `Deny` 側で書くのがセオリー* である。`Allow` + ワイルドカードリソース + Condition の組み合わせは、`Condition` が条件を満たすときに *過剰な権限を与えてしまう* 危険がある。アクセス制限は「してはいけないケースを Deny で塞ぐ」方向で設計する。
+*`Allow` 側の Condition ではなく `Deny` 側で書くのがセオリー* である。`Allow` + ワイルドカードリソース + Condition の組み合わせは、`Condition` が条件を満たすときに *過剰な権限を与えてしまう* 危険がある。アクセス制限は「してはいけないケースを Deny で塞ぐ」方向で設計する。*「AND で繋ぎたいのか OR で繋ぎたいのか」を Statement の分け方で明示* する習慣を付ける。
 
 === 必要な IAM アクションの調べ方
 

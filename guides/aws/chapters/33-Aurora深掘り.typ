@@ -41,7 +41,7 @@ Aurora は MySQL / PostgreSQL 互換のデータベースエンジンを搭載�
   columns: (1fr, 1fr, 1fr),
   align: left,
   table.header([*項目*], [*Aurora MySQL*], [*Aurora PostgreSQL*]),
-  [互換], [MySQL 5.7 / 8.0], [PostgreSQL 13 / 14 / 15 / 16],
+  [互換], [MySQL 8.0（v3）。5.7 互換 v2 は 2024/10 標準サポート終了、以降は Extended Support 課金], [PostgreSQL 13 / 14 / 15 / 16 / 17],
   [Babelfish], [—], [○（SQL Server T-SQL 互換）],
   [pg\_vector], [—], [○],
   [機能性], [シンプル], [豊富（拡張、JSON、ウィンドウ関数等）],

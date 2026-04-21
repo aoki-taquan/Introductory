@@ -38,7 +38,7 @@ def handler(event, context):
 
 - 1コンテナ = 1リクエスト同時処理
 - スケール上限：アカウント・リージョンの *Reserved/Unreserved Concurrency*
-- 急激なスパイク：*Burst Capacity*（東京で 1,000）の後、毎分 +500/秒で拡大
+- 急激なスパイク：*関数単位で10秒ごとに +1,000 インスタンス*（= 10,000 req/秒 相当）までスケール可能（2023年11月以降の新仕様）
 - *Reserved Concurrency*：関数ごとに上限を予約（他関数を圧迫しない）
 - *Provisioned Concurrency*：事前ウォーム済みコンテナを確保
 
@@ -61,6 +61,14 @@ def handler(event, context):
 === Lambda SnapStart
 
 JVM 系言語向けが先行、現在は Python / .NET にも拡大。INIT 後の状態をスナップショットして再利用。コールドスタートを *最大10倍高速化*。
+
+対応ランタイム（2026年4月時点）：
+
+- *Java*：11 / 17 / 21 corretto
+- *Python*：3.12 以降
+- *.NET*：.NET 8 以降
+
+コンテナイメージ Lambda、カスタムランタイムは SnapStart 非対応。
 
 ```bash
 aws lambda update-function-configuration \

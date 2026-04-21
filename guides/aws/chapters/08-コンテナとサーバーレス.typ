@@ -90,8 +90,8 @@ aws lambda create-function \
 
 === 制限
 
-- *実行時間 15 分上限*：長時間処理には向かない（Step Functions や Fargate と組み合わせる）
-- *メモリ上限 10 GB*、*一時ディスク 10 GB*
+- *実行時間 15 分（900 秒）上限*：長時間処理には向かない（Step Functions や Fargate と組み合わせる）
+- *メモリ 128 MB 〜 10,240 MB（約 10 GB）*、*一時ディスク 512 MB 〜 10,240 MB*
 - *同時実行数の制限*：急激なスケールでスロットリングに注意
 
 == API Gateway

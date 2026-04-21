@@ -349,16 +349,14 @@ resource "aws_launch_template" "app" {
   }
 
   user_data = base64encode(<<-EOT
-    #!/bin/bash
-    dnf update -y
-    dnf install -y nginx
-    cat > /usr/share/nginx/html/index.html <<EOF
-    <h1>Hello from $(hostname)</h1>
-    EOF
-    cat > /usr/share/nginx/html/health <<EOF
-    OK
-    EOF
-    systemctl enable --now nginx
+#!/bin/bash
+dnf update -y
+dnf install -y nginx
+cat > /usr/share/nginx/html/index.html <<'HTML'
+<h1>Hello from $(hostname)</h1>
+HTML
+echo OK > /usr/share/nginx/html/health
+systemctl enable --now nginx
   EOT
   )
 
@@ -554,9 +552,12 @@ aws ssm start-session --target i-0abc123...
 
 DB に接続したい場合（手元の端末から）：
 
+踏み台 EC2（または app サブネットの任意の EC2）を経由して DB にポートフォワードする：
+
 ```bash
+# <TARGET_INSTANCE_ID> は app サブネットの EC2 インスタンス ID
 aws ssm start-session \
-  --target i-0bastionが必要ならここに（or app EC2 を踏み台にしてもよい） \
+  --target <TARGET_INSTANCE_ID> \
   --document-name AWS-StartPortForwardingSessionToRemoteHost \
   --parameters "host=$(terraform output -raw db_endpoint),portNumber=3306,localPortNumber=13306"
 ```

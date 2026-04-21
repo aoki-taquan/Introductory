@@ -125,7 +125,9 @@ export class ServerlessAppStack extends Stack {
       partitionKey: { name: 'id', type: ddb.AttributeType.STRING },
       billingMode: ddb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: RemovalPolicy.DESTROY,
-      pointInTimeRecovery: true,
+      pointInTimeRecoverySpecification: {
+        pointInTimeRecoveryEnabled: true,
+      },
     });
 
     // 2. Lambda

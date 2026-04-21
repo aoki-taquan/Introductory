@@ -31,7 +31,7 @@ AWS の AI/ML スタックは「*既製 API*」「*ML プラットフォーム*�
   [Comprehend Medical], [医療テキスト解析],
   [Textract], [文書 OCR + 表・フォーム抽出],
   [Personalize], [リアルタイムレコメンド],
-  [Forecast], [時系列予測（廃止予定、SageMaker Canvas に集約方向）],
+  [Forecast], [時系列予測（2024/7 新規受付停止、既存は継続利用可。新規は SageMaker Canvas）],
   [Lex], [会話 Bot（Connect とも統合）],
   [Kendra], [エンタープライズ全文検索（SaaS コネクタ多数）],
   [Fraud Detector], [不正検知モデルの学習・推論],
@@ -65,9 +65,9 @@ for d in resp['TextDetections']:
   columns: (1fr, 2fr),
   align: left,
   table.header([*ベンダー*], [*モデル系列*]),
-  [Anthropic], [Claude 4 Opus / Sonnet / Haiku（推奨）。指示追従と長文・コードに強い],
+  [Anthropic], [Claude Opus 4.7 / Sonnet 4.6 / Haiku 4.5（推奨）。指示追従と長文・コードに強い],
   [Amazon], [Nova（Premier/Pro/Lite/Micro）、Titan（テキスト・画像・埋め込み）],
-  [Meta], [Llama 4 / Llama 3 系。OSS 系の柔軟性],
+  [Meta], [Llama 4 系、Llama 3 系。OSS 系の柔軟性],
   [Mistral], [Mistral Large、Mistral Small。欧州系],
   [Cohere], [Command / Embed],
   [Stability AI], [Stable Diffusion（画像生成）],
@@ -91,7 +91,8 @@ resp = br.retrieve_and_generate(
         'type': 'KNOWLEDGE_BASE',
         'knowledgeBaseConfiguration': {
             'knowledgeBaseId': 'KB123456',
-            'modelArn': 'arn:aws:bedrock:ap-northeast-1::foundation-model/anthropic.claude-sonnet-4-6-20251201-v1:0',
+            # 新世代 Claude は cross-region inference profile 経由が必須のリージョンが多い
+            'modelArn': 'arn:aws:bedrock:ap-northeast-1:123456789012:inference-profile/apac.anthropic.claude-sonnet-4-6-v1:0',
         }
     }
 )
