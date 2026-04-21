@@ -51,3 +51,6 @@
 #include "chapters/44-トラブルシューティングCookbook.typ"
 #include "chapters/45-ハイブリッドクラウド.typ"
 #include "chapters/46-AWSと関連OSSエコシステム.typ"
+#include "chapters/47-料金モデル完全解説.typ"
+#include "chapters/48-業界別アーキテクチャ.typ"
+#include "chapters/49-用語集.typ"
