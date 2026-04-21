@@ -152,6 +152,80 @@ DynamoDB では RDB 的な「テーブルごとに正規化」は不向き。*1�
 - *クラスタモード無効*：1つのプライマリ＋レプリカ。小〜中規模に十分
 - *クラスタモード有効*：シャーディングで水平スケール。超大規模向け
 
+=== MemoryDB for Redis
+
+Redis 互換だが *耐久性* が大きく違う。Multi-AZ への同期書き込み、Transaction log で *DB 級の耐久性*。ElastiCache より高価。用途：
+
+- マイクロサービスのプライマリ DB（シンプルな KV ユースケース）
+- キャッシュ用途には ElastiCache、*永続 KVS* なら MemoryDB
+
+== OpenSearch Service
+
+全文検索・ログ分析。15章で詳述するが、DB 文脈でも重要な選択肢：
+
+- 商品検索、全文検索
+- ログ分析（CloudWatch Logs → Firehose → OpenSearch）
+- ベクトル検索（KNN、RAG 用）
+- Elasticsearch / Kibana 互換
+
+Provisioned と Serverless（OCU 課金）の2モード。
+
+== DocumentDB と Keyspaces
+
+- *DocumentDB*：MongoDB 互換。既存 Mongo 資産の移行先
+- *Keyspaces*：Cassandra 互換。Cassandra 互換ドライバから接続可
+
+MongoDB / Cassandra をフルマネージドで使いたい場合の選択肢。ただし *100% 完全互換ではない* ため、使用機能の対応状況を事前確認。
+
+== Neptune
+
+グラフデータベース（Property Graph と RDF）。ソーシャルグラフ、レコメンド、不正検知、ナレッジグラフの用途。
+
+- *Neptune Analytics*：グラフ分析 + ベクトル検索の統合
+- Amazon Neptune ML：グラフ ML
+- Gremlin、openCypher、SPARQL クエリ言語対応
+
+== Timestream
+
+時系列データベース（IoT センサー、メトリクス、金融時系列）。
+
+- 自動的にホット層（最近）とコールド層（古い）に分離
+- SQL 風クエリ
+- Kinesis / IoT Core から直接取り込み
+- *Timestream for InfluxDB*：InfluxDB 互換のバリアント（2024〜）
+
+== Redshift
+
+データウェアハウス（DWH）。列指向 MPP。15章で詳述。
+
+- *Provisioned*（ra3 ノード）と *Serverless*
+- *Spectrum* で S3 データに SQL
+- *Zero-ETL* 統合（Aurora / DynamoDB → Redshift）
+
+分析系は Redshift、トランザクション系は Aurora / DynamoDB が分担。
+
+== データベースの選び方（再掲＋詳細）
+
+#table(
+  columns: (1fr, 2fr),
+  align: left,
+  table.header([*要件*], [*推奨 DB*]),
+  [汎用 RDBMS、OSS 互換], [Aurora PostgreSQL / Aurora MySQL],
+  [既存 Oracle / SQL Server], [RDS for Oracle / SQL Server],
+  [シンプル Key-Value、極端なスケール], [DynamoDB],
+  [永続 KVS（耐久性必要）], [MemoryDB for Redis],
+  [キャッシュ・Pub/Sub], [ElastiCache (Valkey/Redis)],
+  [全文検索・ログ分析], [OpenSearch Service],
+  [時系列], [Timestream],
+  [グラフ], [Neptune],
+  [MongoDB 互換], [DocumentDB],
+  [Cassandra 互換], [Keyspaces],
+  [分析・BI], [Redshift + S3 Lake],
+  [機密データ・規制], [RDS / Aurora + KMS + VPC],
+)
+
+新規プロジェクトの第一候補は *Aurora PostgreSQL*（柔軟、互換、Serverless v2 で安い）。アクセスパターンが単純・高スケール要件なら *DynamoDB*。
+
 == DB 選定のガイドライン
 
 === 「まず RDBMS」で始める

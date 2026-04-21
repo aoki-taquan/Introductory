@@ -218,6 +218,157 @@ AWS 上の典型的な構成では、以下が組み合わさる。
 - *抑制・まとめ*：同じアラートが1時間で100件来たら1件に集約
 - *アクションを明文化* する：ランブックを Runbook として Automation に登録
 
+== X-Ray（分散トレーシング）
+
+マイクロサービス構成でボトルネック特定に不可欠。
+
+- リクエストごとに *トレース ID* を付与し、全サービスを串刺し
+- *セグメント*（1サービス内）と *サブセグメント*（SDK 呼び出し等の内訳）
+- *Service Map*：依存関係と平均レイテンシを可視化
+- *Trace Analytics*：特定条件のトレースを絞り込み
+- サンプリングルール：全リクエストを取ると高コスト、デフォルトは *1req/s + 5%*
+- Lambda Powertools や OpenTelemetry で *自動計装*
+
+ECS / EKS / EC2 / Lambda / API GW / SNS / SQS / DynamoDB が X-Ray と統合済み。
+
+=== X-Ray 使用例（Lambda、Python）
+
+```python
+from aws_xray_sdk.core import xray_recorder, patch_all
+patch_all()    # boto3、requests を自動計装
+
+@xray_recorder.capture('handler')
+def handler(event, context):
+    with xray_recorder.in_subsegment('processing'):
+        # 重い処理
+        ...
+```
+
+これだけで Lambda → DynamoDB → 外部 HTTP 呼び出しが Service Map に描画される。
+
+== CloudWatch Synthetics（外形監視）
+
+*Canary*（Node.js / Python スクリプト）を定期実行して URL の健全性を確認。
+
+- ブラウザ操作も可能（Puppeteer ベース）：ログイン → ダッシュボード表示確認
+- 失敗時に CloudWatch Alarm 発火
+- スクショと HAR ファイル取得
+- APIの E2E テストとしても使える
+
+=== Canary の例
+
+```javascript
+const { Synthetics } = require('Synthetics');
+
+const apiCheck = async function () {
+  const response = await Synthetics.executeHttpStep('check', {
+    url: 'https://api.example.com/health',
+  });
+  if (response.statusCode !== 200) throw new Error('unhealthy');
+};
+
+exports.handler = async () => apiCheck();
+```
+
+== CloudWatch RUM（Real-User Monitoring）
+
+ブラウザで動くクライアント側の性能・エラーを計測。
+
+- Core Web Vitals（LCP、FID、CLS）
+- JavaScript エラー
+- API レイテンシ（クライアント視点）
+- セッション再現
+- Cognito / OIDC でユーザー識別可
+
+フロントエンド JS に *1行 snippet* を埋めるだけで導入。
+
+== Systems Manager の詳細
+
+9章で触れた SSM は非常に広い。代表的なサブサービス：
+
+#table(
+  columns: (1fr, 2fr),
+  align: left,
+  table.header([*機能*], [*用途*]),
+  [Fleet Manager], [インスタンス一覧・リモート操作 GUI],
+  [Session Manager], [ブラウザ or CLI でシェル接続],
+  [Run Command], [複数台に一括コマンド],
+  [Patch Manager], [OS パッチ自動適用（ベースライン + メンテナンスウィンドウ）],
+  [Parameter Store], [階層的な設定・秘密値],
+  [State Manager], [定期的に望ましい構成を強制],
+  [Automation], [Runbook 実行（多段タスク）],
+  [Inventory], [ソフト・ハードの構成収集],
+  [OpsCenter], [運用イベントの一元管理],
+  [Change Manager], [変更申請・承認・実行],
+  [Maintenance Windows], [定期メンテナンス時間の定義],
+  [Distributor], [パッケージ配布],
+  [Quick Setup], [アカウント・リージョン横断の初期セットアップ],
+)
+
+=== オンプレ SSM Managed Instance
+
+オンプレサーバに SSM Agent を入れ、*Hybrid Activation* で登録すると、*オンプレサーバを AWS コンソールから一元管理* できる（Patch、Inventory、Run Command 等）。ハイブリッド運用の基盤。
+
+=== Parameter Store vs Secrets Manager（再確認）
+
+#table(
+  columns: (1fr, 1fr, 1fr),
+  align: left,
+  table.header([*項目*], [*Parameter Store*], [*Secrets Manager*]),
+  [基本料金], [Standard 無料、Advanced 有料], [秘密1個 \$0.40/月],
+  [自動ローテーション], [なし], [あり（Lambda 連携）],
+  [Cross-Region Replication], [手動], [自動],
+  [階層アクセス], [`/app/prod/*` を一括読取], [個別],
+  [バージョン履歴], [Standard は100バージョン], [—],
+  [ScanLimit], [API レート控えめ], [API レート控えめ],
+)
+
+軽い設定は Parameter Store、*本番 DB パスワード等* は Secrets Manager。
+
+== Config の深掘り
+
+すべてのリソースの *設定変更履歴* を時系列で保管。
+
+- *Rules*：マネージド（数百個）＋ カスタム（Lambda、Guard DSL）
+- *Remediation*：違反を自動修復（SSM Automation）
+- *Conformance Pack*：ルール束（CIS、PCI、HIPAA、AWS BP）
+- *Aggregator*：マルチアカウント・リージョンを集約
+- *Organizations 連携*：組織全体で有効化
+
+=== 典型的なマネージドルール
+
+- `s3-bucket-public-read-prohibited`
+- `s3-bucket-server-side-encryption-enabled`
+- `encrypted-volumes`
+- `iam-user-mfa-enabled`
+- `ec2-instance-no-public-ip`
+- `rds-instance-deletion-protection-enabled`
+
+これらを *Conformance Pack* で一括適用し、違反は Slack / メール通知。
+
+== CloudTrail Lake
+
+SQL で CloudTrail を検索できる。長期保管（最長10年）。監査調査が圧倒的に早くなる。
+
+```sql
+SELECT eventTime, userIdentity.userName, eventName, sourceIPAddress
+FROM arn:aws:cloudtrail:ap-northeast-1:123456789012:eventdatastore/xxxx
+WHERE eventTime > '2026-04-21T00:00:00Z'
+  AND errorCode IS NOT NULL
+  AND userIdentity.userName = 'alice'
+ORDER BY eventTime DESC
+LIMIT 100;
+```
+
+== ServiceQuotas
+
+各サービスの上限値を *閲覧・緩和申請* するサービス。
+
+- アカウント・リージョン単位
+- 履歴、承認状況
+- EventBridge 経由で上限到達前に通知
+- CloudFormation / CDK から上限緩和も申請可
+
 == 運用のベストプラクティス
 
 - *最初から CloudTrail / Config / GuardDuty（次章）を有効化*
@@ -226,3 +377,7 @@ AWS 上の典型的な構成では、以下が組み合わさる。
 - *主要リソースに監視ダッシュボードを1枚作る*（最初の障害対応が段違いに楽になる）
 - *タグ付けルールを決めて自動化する*
 - *月次で Trusted Advisor / Cost Explorer を見て棚卸しする*
+- *X-Ray / Application Signals* を新規サービスには最初から
+- *インシデント対応 Runbook* を Systems Manager Automation に登録
+- *Service Quotas* を監視して、上限手前でアラート
+- *Game Day / 障害演習* を定期実施（FIS、Resilience Hub と組み合わせ）
