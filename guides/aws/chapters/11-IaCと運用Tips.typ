@@ -208,9 +208,9 @@ terraform validate
 
 === state 管理の注意
 
-- *state ファイルには機密情報が含まれる*（パスワードや ARN など）ので、S3 + DynamoDB のリモート backend を使う
+- *state ファイルには機密情報が含まれる*（パスワードや ARN など）ので、S3 リモート backend を使う
 - *state の手編集は避ける*（`terraform import` / `state rm` を使う）
-- 複数人・CI で運用するなら *排他ロック*（DynamoDB）は必須
+- 複数人・CI で運用するなら *排他ロック* は必須。Terraform 1.10 以降は `backend "s3"` に `use_lockfile = true` を指定することで *S3 ネイティブのロック* が GA（DynamoDB テーブル不要）。それ以前の構成では従来通り `dynamodb_table` でロックを取る
 
 == IaC ツール選びのガイドライン
 

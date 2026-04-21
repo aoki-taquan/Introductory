@@ -79,21 +79,35 @@ arn:aws:<service>:<region>:<account-id>:<resource>
 
 === 条件（Condition）
 
-アクセス元 IP、時刻、MFA の有無などで制御を追加できる。
+アクセス元 IP、時刻、MFA の有無などで制御を追加できる。典型的なのは「*MFA なし／社外 IP からの操作を一律拒否する*」ための `Deny` ポリシーである。
 
 ```json
 {
-  "Effect": "Allow",
-  "Action": "s3:*",
-  "Resource": "*",
-  "Condition": {
-    "Bool": { "aws:MultiFactorAuthPresent": "true" },
-    "IpAddress": { "aws:SourceIp": "203.0.113.0/24" }
-  }
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Sid": "DenyWithoutMfaOrOutsideCorpIp",
+    "Effect": "Deny",
+    "Action": "*",
+    "Resource": "*",
+    "Condition": {
+      "BoolIfExists": { "aws:MultiFactorAuthPresent": "false" },
+      "NotIpAddress":  { "aws:SourceIp": ["203.0.113.0/24"] }
+    }
+  }]
 }
 ```
 
-MFA 必須や社内 IP 限定のアクセス制御はこの `Condition` で実現する。
+*`Allow` 側の Condition ではなく `Deny` 側で書くのがセオリー* である。`Allow` + ワイルドカードリソース + Condition の組み合わせは、`Condition` が条件を満たすときに *過剰な権限を与えてしまう* 危険がある。アクセス制限は「してはいけないケースを Deny で塞ぐ」方向で設計する。
+
+=== 必要な IAM アクションの調べ方
+
+実運用では「権限不足エラーが出た → 何を足せばよいか」を特定する場面が多い。次の経路で調べられる。
+
+- *エラーメッセージ*：`not authorized to perform: ec2:TerminateInstances` のように必要アクション名がそのまま書かれる
+- *CloudTrail*：実行したい操作をまず権限ありで実行し、ログから `eventName` と `eventSource` を抜く
+- *IAM Access Analyzer Policy Generation*：実際の使用ログから必要最小のポリシーを自動生成
+- *IAM Policy Simulator*：ポリシー適用前に特定アクションが通るか試せる
+- *サービスの公式ドキュメント*：各サービスの "Actions, resources, and condition keys" ページに列挙されている
 
 == ポリシーの種類
 
@@ -170,14 +184,21 @@ EC2 がこのロールを引き受けられるようにする信頼ポリシー�
     "Action": "sts:AssumeRoleWithWebIdentity",
     "Condition": {
       "StringEquals": {
-        "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
-      },
-      "StringLike": {
-        "token.actions.githubusercontent.com:sub": "repo:octo/app:*"
+        "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+        "token.actions.githubusercontent.com:sub": "repo:octo/app:ref:refs/heads/main"
       }
     }
   }]
 }
+```
+
+`sub` の条件に *`StringLike` でワイルドカード（例：`repo:octo/app:*`）を使うのは危険* である。フォーク PR やタグ push など、想定外のワークフローからもロールを引き受けられてしまう。*`StringEquals` で特定ブランチ・環境・タグを明示する* のが安全である。複数条件を許したい場合は配列で列挙する。
+
+```json
+"token.actions.githubusercontent.com:sub": [
+  "repo:octo/app:ref:refs/heads/main",
+  "repo:octo/app:environment:prod"
+]
 ```
 
 == ベストプラクティス

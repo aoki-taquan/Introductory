@@ -41,13 +41,12 @@ RDS は定番 RDBMS をマネージドで提供する。バックアップ・パ
 
 === 高可用性：Multi-AZ 配置
 
-Multi-AZ を有効にすると、別 AZ にスタンバイレプリカが同期レプリケーションされる。
+Multi-AZ には2つの方式がある。
 
-- 障害時は自動で DNS 切り替え（通常1～2分）
-- 単一エンドポイント（`<name>.<id>.<region>.rds.amazonaws.com`）を使い続ける
-- スタンバイ側は読み取りには使えない（Aurora と違う点）
+- *Multi-AZ DB インスタンス*（従来型）：別 AZ にスタンバイを置き、同期レプリケーション。*スタンバイは読み取り不可*。障害時に自動で DNS 切り替え（通常1〜2分）
+- *Multi-AZ DB クラスター*（2022年以降の新方式、MySQL / PostgreSQL のみ）：*2つのリーダブルスタンバイ* を別 AZ に持ち、読み取りにも使える。フェイルオーバが従来型より高速
 
-本番では *Multi-AZ 必須*、検証では無効にしてコストを抑える。
+本番では *Multi-AZ 必須*、検証では無効にしてコストを抑える。読み取り分散と高可用性を両立したい場合は Multi-AZ DB クラスター、または後述の Aurora を検討する。
 
 === リードレプリカ
 
@@ -88,7 +87,7 @@ RDS と同じ感覚で使えるが、ストレージが *独自の分散スト�
 
 ACU（Aurora Capacity Unit）単位で自動スケールする。
 
-- 0 ACU（ゼロスケール）まで落とせる世代もあり、使わない時間は課金ゼロに近づく
+- 2024年11月以降、対応バージョンで *0 ACU まで自動ポーズ*（Aurora PostgreSQL 13.15+/14.12+/15.7+/16.3+、Aurora MySQL 3.08+）。再開時は約15秒のウォームアップが入る
 - 検証・低頻度利用・スパイクがあるワークロードに向く
 - Multi-AZ 相当の可用性
 
@@ -166,6 +165,24 @@ EC2 に自前で MySQL を立てるのは、ほぼ非推奨。*バックアッ�
 === 商用ライセンスの扱い
 
 Oracle / SQL Server は *ライセンスインクルード* か *BYOL（持ち込み）* を選べる。既存ライセンス資産があれば BYOL、なければインクルードで試算する。
+
+=== ユースケース別の目安
+
+迷ったときの目安。あくまで出発点で、要件次第で見直す。
+
+#table(
+  columns: (1fr, 1.2fr, 1fr),
+  align: left,
+  table.header([*アプリ例*], [*主 DB*], [*付加*]),
+  [個人ブログ / 社内ツール], [Aurora Serverless v2 PostgreSQL（0 ACU 対応）], [—],
+  [Web アプリ（MAU 数万）], [Aurora PostgreSQL r7g.large + リーダ1台], [ElastiCache（セッション）],
+  [ソーシャル系の高頻度 KV / 連番 ID 無し], [DynamoDB オンデマンド], [DynamoDB Streams → Lambda],
+  [ECサイト（注文 × 検索）], [Aurora MySQL], [OpenSearch（商品検索） + ElastiCache],
+  [リアルタイムランキング], [DynamoDB], [ElastiCache（Redis Sorted Set）],
+  [大量センサーデータ], [Timestream], [S3 + Athena（長期保管）],
+  [分析・BI], [Redshift または Aurora + Athena（S3 レイク）], [—],
+  [既存 Oracle 資産], [RDS for Oracle（BYOL）], [段階的に PostgreSQL に移行],
+)
 
 == DB 周りのネットワーク
 

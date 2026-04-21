@@ -129,12 +129,12 @@ S3 のアクセス制御は歴史的経緯から *複数のレイヤ* が重な�
 
 新規バケットは以下の設定で作る。
 
-- *Block all public access*：ON
-- *S3 Object Ownership*：Bucket owner enforced（ACL 無効化）
-- *バケット暗号化*：SSE-S3 または SSE-KMS を有効化（AWS 管理キーで十分）
+- *Block all public access*：ON（2023年4月以降、新規バケットはデフォルト ON）
+- *S3 Object Ownership*：Bucket owner enforced（ACL 無効化。2023年以降デフォルト）
+- *バケット暗号化*：2023年1月以降、新規バケットは *SSE-S3 が自動有効・無効化不可*。機密性が高い場合は *SSE-KMS（CMK）* に変更する
 - *バージョニング*：必要に応じて有効化
 
-特別な理由（静的サイト公開など）がなければ、まずはこの「*全部閉じる*」状態にして、必要な穴だけバケットポリシーで開ける。
+新規作成時点で既に「全部閉じる」状態に近いが、確認は必須。特別な理由（静的サイト公開など）がなければ、必要な穴だけバケットポリシーで開ける。
 
 === バケットポリシーの例
 
@@ -162,16 +162,18 @@ S3 のアクセス制御は歴史的経緯から *複数のレイヤ* が重な�
 
 === ブロックパブリックアクセスのバイパス
 
-公開バケット（静的サイトなど）が必要なときだけ、明示的にブロックを解除する。
+⚠️ *ほとんどの場合、この操作は不要* である。静的サイトの HTTPS 配信は後述の *CloudFront + OAC（Origin Access Control）* でバケットを非公開のまま実現できる。一般公開バケットはバケット名列挙やデータ漏洩事故の温床で、できる限り避ける。
+
+どうしてもバケット自体を公開する必要がある場合（レガシーシステムとの互換など）は、影響を最小化するよう *必要な項目だけを解除* する。以下はバケットポリシーによる公開は許すが、ACL 経由の公開は止める、という最小解除の例。
 
 ```bash
 aws s3api put-public-access-block \
   --bucket my-public-site \
   --public-access-block-configuration \
-  "BlockPublicAcls=false,IgnorePublicAcls=false,BlockPublicPolicy=false,RestrictPublicBuckets=false"
+  "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=false,RestrictPublicBuckets=false"
 ```
 
-この操作自体が *イベント通知されるように CloudTrail で監視* することが望ましい。
+4項目すべてを `false` にするのは *最も危険な設定* で、学習目的でも推奨しない。この操作は *CloudTrail と EventBridge で監視* し、誰かが解除したらすぐ通知が飛ぶようにしておく。アカウントレベルでも `aws s3control put-public-access-block` で同様のガードを入れておくと、個別バケットの誤設定から二重に守れる。
 
 == バージョニングとオブジェクトロック
 
@@ -182,6 +184,25 @@ aws s3api put-public-access-block \
 - *誤削除からの復旧*：`DeleteMarker` を外せば元に戻せる
 - *ランサムウェア対策*：攻撃者が削除してもバージョンが残る
 - *ストレージ料金が増える* ため、ライフサイクルルールで古いバージョンを削除する
+
+==== バージョニング × ライフサイクルのセット運用
+
+バージョニング有効バケットでは、通常のオブジェクトとは別に *「非現行バージョン」* が積み重なる。これを放っておくと *ストレージ料金が想定外に増える* のが S3 料金事故の典型パターンである。バージョニングを有効化するなら、*必ず同時に以下のライフサイクルを設定* する。
+
+```json
+{
+  "Rules": [{
+    "Id": "expire-old-versions",
+    "Status": "Enabled",
+    "Filter": {},
+    "NoncurrentVersionExpiration": { "NoncurrentDays": 30 },
+    "AbortIncompleteMultipartUpload": { "DaysAfterInitiation": 7 }
+  }]
+}
+```
+
+- `NoncurrentVersionExpiration`：30日以上前の古いバージョンを削除
+- `AbortIncompleteMultipartUpload`：失敗して放置されたマルチパートアップロードの破片を削除（これも可視化されないまま課金対象になりがち）
 
 === オブジェクトロック（WORM）
 

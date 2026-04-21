@@ -125,7 +125,8 @@ CI や機械学習など CPU を継続的に使う用途では t ファミリー
 
 - スナップショットを S3 に保存（裏側）してバックアップできる
 - スナップショットから別 AZ・別リージョンへボリュームを復元できる
-- 暗号化は *常に有効化* を推奨（デフォルト暗号化をアカウント設定でオンにできる）
+- 暗号化は *常に有効化* を推奨。*EC2 の設定 → データ保護とセキュリティ → EBS 暗号化 → デフォルトで常に暗号化* を *リージョンごとに* ON にする
+- 旧世代の `magnetic`（standard）は *新規作成不可*。既存のみ使用可能
 
 === インスタンスストア
 
@@ -138,11 +139,47 @@ CI や機械学習など CPU を継続的に使う用途では t ファミリー
 
 デフォルトでは *インスタンス終了時にルート EBS も削除* される。データ保持したい場合は「終了時に削除」のチェックを外すか、別途データ用ボリュームを使う。
 
+== インスタンスメタデータサービス（IMDSv2）
+
+EC2 内部からは `169.254.169.254` の *インスタンスメタデータサービス（IMDS）* にアクセスでき、インスタンスの ID、リージョン、IAM ロールの一時認証情報などが取得できる。SDK や CLI が裏で呼んでいる。
+
+IMDS には v1（token 不要、GET のみ）と v2（PUT でトークンを取ってから GET）があり、*v1 は SSRF 脆弱性と組み合わさるとクラウド認証情報が盗まれる経路* になる。2024年以降の新規 AMI はデフォルトで *IMDSv2 のみを受け付ける* 設定だが、既存の起動テンプレートや持ち込み AMI では明示する。
+
+```bash
+# 起動テンプレート／インスタンスで IMDSv2 必須化
+aws ec2 modify-instance-metadata-options \
+  --instance-id i-0abc... \
+  --http-tokens required \
+  --http-put-response-hop-limit 2 \
+  --http-endpoint enabled \
+  --instance-metadata-tags enabled
+```
+
+CloudFormation / CDK / Terraform で新規作成する場合も、`MetadataOptions` や `metadata_options` で同等の設定を必ず入れる。
+
 == ネットワーク関連
 
-=== キーペアと SSH
+=== SSM Session Manager（推奨）
 
-EC2 にログインするために、起動時に *キーペア*（公開鍵・秘密鍵のペア）を関連付ける。
+*SSH を開かない* 現代的な接続方式。Systems Manager 経由でインスタンスにコンソール接続する。新規構築では *第一選択肢* として扱う。
+
+- ポート22を開放不要
+- SSH 鍵の管理不要
+- IAM で接続権限を制御
+- 全コマンドが CloudTrail に記録される
+
+前提：インスタンスに *SSM エージェント*（Amazon Linux 2023 / 2、最近の Ubuntu / RHEL 公式 AMI には標準搭載）と、IAM ロール `AmazonSSMManagedInstanceCore` を付与する。
+
+```bash
+# CLIから接続
+aws ssm start-session --target i-0abc123...
+```
+
+検証・本番ともに、*SSM Session Manager を第一選択* にすると運用が軽くなる。
+
+=== SSH による接続（必要な場合のみ）
+
+EC2 にキーペアベースの SSH で接続したい場合は、起動時に *キーペア*（公開鍵・秘密鍵のペア）を関連付ける。
 
 ```bash
 # キーペアを作成して秘密鍵を取得
@@ -154,33 +191,14 @@ chmod 400 ~/.ssh/my-key.pem
 ssh -i ~/.ssh/my-key.pem ec2-user@<パブリックIP>
 ```
 
-キーペア紛失時は、新しいインスタンスを立てて EBS を付け替えて復旧する、という手順になる。パスワード認証は基本使わない。
-
-=== SSM Session Manager（推奨）
-
-*SSH を開かない* 現代的な接続方式。Systems Manager 経由でインスタンスにコンソール接続する。
-
-- ポート22を開放不要
-- SSH 鍵の管理不要
-- IAM で接続権限を制御
-- 全コマンドが CloudTrail に記録される
-
-前提：インスタンスに SSM エージェント（Amazon Linux 2023 は標準搭載）と、IAM ロール `AmazonSSMManagedInstanceCore` を付与する。
-
-```bash
-# CLIから接続
-aws ssm start-session --target i-0abc123...
-```
-
-検証・本番ともに、*SSM Session Manager を第一選択* にすると運用が軽くなる。
+キーペア紛失時は、新しいインスタンスを立てて EBS を付け替えて復旧する、という手順になる。パスワード認証は基本使わない。SSH を開けるとポート22スキャンの攻撃対象となるため、*本番用途では SSM Session Manager を優先* し、SSH はどうしても必要な場合（OS 側の診断、rsync、SSH ポートフォワーディング等）に限定する。
 
 === Elastic IP
 
 固定のパブリック IPv4 アドレス。インスタンスを再起動しても IP が変わらなくする。
 
-- アタッチ中のインスタンスが稼働中なら無料
-- 未使用（または停止中インスタンスに関連付け）は時間課金
-- *使わないのに確保したまま放置しない*
+- 2024年2月以降は *関連付けの有無にかかわらず常時課金*（\$0.005/時、約 \$3.6/月）
+- *使わないのに確保したまま放置しない*（コンソールの「Elastic IP」一覧で解放する）
 
 == Auto Scaling とロードバランサ
 
